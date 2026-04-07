@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Faculty Attendance</title>
+    <link rel="stylesheet" href="static/style1.css">
+</head>
+
+<body>
+<div class="card">
+    <h2>Faculty Attendance</h2>
+
+    <input type="text" id="teacher_id" placeholder="Enter Teacher ID">
+
+    <button class="in" onclick="logTime('IN')">Time In</button>
+    <button class="out" onclick="logTime('OUT')">Time Out</button>
+
+    <p id="response"></p>
+</div>
+
+<script>
+async function logTime(action) {
+    const teacher_id = document.getElementById("teacher_id").value;
+
+    const res = await fetch("/time", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ teacher_id, action })
+    });
+
+    let data;
+
+    try {
+        data = await res.json();
+    } catch {
+        document.getElementById("response").innerText = "Server error.";
+        return;
+    }
+
+    if (!res.ok) {
+        document.getElementById("response").innerText = data.error;
+    } else {
+        document.getElementById("response").innerText = "Recorded successfully.";
+    }
+}
+</script>
+</body>
+</html>

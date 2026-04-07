@@ -1,0 +1,74 @@
+body {
+    font-family: Arial;
+    background: #0f172a;
+    color: white;
+    padding: 20px;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    background: #1e293b;
+}
+
+th,
+td {
+    padding: 10px;
+    border: 1px solid #334155;
+    text-align: center;
+}
+
+th {
+    background: #334155;
+}
+
+.valid {
+    color: #22c55e;
+}
+
+.tampered {
+    color: #ef4444;
+}
+
+
+button {
+    color: white;
+    background-color: #222;
+    font-weight: 500;
+    border-radius: 0.4rem; /* Slightly smaller radius for a smaller button */
+    font-size: 0.85rem;    /* Reduced from 1rem */
+    line-height: 1.2rem;   /* Reduced from 2rem */
+    padding: 0.4rem 1rem;  /* Reduced padding (top/bottom left/right) */
+    cursor: pointer;
+    text-align: center;
+    margin-right: 0.5rem;
+    display: inline-flex;
+    align-items: center;
+    border: none;
+}
+
+button:hover {
+    background-color: #333;
+}
+
+button svg {
+    display: inline;
+    width: 1rem;           /* Reduced from 1.3rem */
+    height: 1rem;          /* Reduced from 1.3rem */
+    margin-right: 0.5rem;  /* Reduced from 0.75rem */
+    color: white;
+}
+
+button:focus svg {
+    animation: spin_357 0.5s linear;
+}
+
+@keyframes spin_357 {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
+}

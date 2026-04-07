@@ -1,0 +1,106 @@
+body {
+    font-family: Arial;
+    background: #0f172a;
+    color: white;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+}
+
+.card {
+    background: #1e293b;
+    padding: 30px;
+    border-radius: 10px;
+    width: 300px;
+    text-align: center;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+}
+
+input {
+    width: 93%;
+    padding: 10px;
+    margin-top: 10px;
+    border: none;
+    border-radius: 5px;
+}
+
+button {
+    margin-top: 10px;
+    padding: 10px;
+    width: 100%;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+.in,
+.out {
+    appearance: none;
+    backface-visibility: hidden;
+    border-radius: 8px;
+    border-style: none;
+    box-sizing: border-box;
+    color: #fff;
+    cursor: pointer;
+    display: inline-block;
+    font-family: Inter, -apple-system, system-ui, "Segoe UI", Helvetica, Arial, sans-serif;
+    font-size: 16px;
+    font-weight: 600;
+    letter-spacing: normal;
+    line-height: 1.5;
+    outline: none;
+    overflow: hidden;
+    padding: 13px 20px;
+    position: relative;
+    text-align: center;
+    text-decoration: none;
+    transform: translate3d(0, 0, 0);
+    transition: all .3s;
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: manipulation;
+    vertical-align: top;
+    white-space: nowrap;
+}
+
+/* Time In - Green */
+.in {
+    background-color: #27ae60;
+    box-shadow: rgba(39, 174, 96, .15) 0 4px 9px;
+}
+
+.in:hover {
+    background-color: #1e8449;
+    box-shadow: rgba(39, 174, 96, .2) 0 6px 12px;
+}
+
+/* Time Out - Red */
+.out {
+    background-color: #e74c3c;
+    box-shadow: rgba(231, 76, 60, .15) 0 4px 9px;
+}
+
+.out:hover {
+    background-color: #c0392b;
+    box-shadow: rgba(231, 76, 60, .2) 0 6px 12px;
+}
+
+/* Global Interactions */
+.in:hover,
+.out:hover {
+    opacity: 1;
+    transform: translateY(0);
+    transition-duration: .35s;
+}
+
+.in:active,
+.out:active {
+    transform: translateY(2px);
+    transition-duration: .35s;
+}
+
+#response {
+    margin-top: 15px;
+    font-size: 14px;
+}
