@@ -1,16 +1,27 @@
 from datetime import datetime
 import base64
+from functools import wraps
 from io import BytesIO
 
 import cv2
 import numpy as np
 import qrcode
-from flask import Blueprint, jsonify, request, send_file
+from flask import Blueprint, jsonify, request, send_file, session
 
 from crypto import hash_record, sign, verify
 from supabase_client import supabase
 
 attendance_bp = Blueprint("attendance", __name__)
+
+
+def admin_required(view):
+    @wraps(view)
+    def wrapped(*args, **kwargs):
+        if not session.get("admin_authenticated"):
+            return jsonify({"error": "Unauthorized"}), 401
+        return view(*args, **kwargs)
+
+    return wrapped
 
 
 def get_teacher(teacher_id):
@@ -182,6 +193,7 @@ def scan_frame():
 
 
 @attendance_bp.route("/verify", methods=["GET"])
+@admin_required
 def verify_all():
     try:
         response = supabase.table("attendance").select("*").execute()
@@ -221,6 +233,7 @@ def verify_all():
 
 
 @attendance_bp.route("/teachers", methods=["GET"])
+@admin_required
 def list_teachers():
     try:
         response = supabase.table("teachers").select("*").order("id").execute()
@@ -237,6 +250,7 @@ def list_teachers():
 
 
 @attendance_bp.route("/teachers", methods=["POST"])
+@admin_required
 def create_teacher():
     try:
         data = request.json or {}
@@ -272,6 +286,7 @@ def create_teacher():
 
 
 @attendance_bp.route("/teachers/<teacher_id>/qr", methods=["GET"])
+@admin_required
 def teacher_qr(teacher_id):
     try:
         teacher_name = get_teacher_name(teacher_id)
@@ -290,6 +305,7 @@ def teacher_qr(teacher_id):
 
 
 @attendance_bp.route("/teachers/<teacher_id>/qr.png", methods=["GET"])
+@admin_required
 def teacher_qr_png(teacher_id):
     try:
         teacher_name = get_teacher_name(teacher_id)

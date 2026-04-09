@@ -52,6 +52,7 @@ def save_admin_attempt_state(count, cooldown_until):
 
 @app.route("/")
 def home():
+    session.pop("admin_authenticated", None)
     return render_template("index.html")
 
 
