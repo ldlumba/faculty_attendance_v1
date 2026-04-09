@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from hmac import compare_digest
 
 from flask import Flask, jsonify, redirect, render_template, request, session, url_for
@@ -9,35 +9,45 @@ from routes.attendance import attendance_bp
 app = Flask(__name__)
 app.secret_key = SECRET_KEY
 app.permanent_session_lifetime = timedelta(hours=8)
+app.config.update(
+    SESSION_COOKIE_HTTPONLY=True,
+    SESSION_COOKIE_SAMESITE="Lax",
+)
 
 app.register_blueprint(attendance_bp)
 
-admin_attempts = {}
 MAX_ADMIN_ATTEMPTS = 5
 ADMIN_COOLDOWN_SECONDS = 30
 
 
-def get_client_key():
-    forwarded_for = request.headers.get("X-Forwarded-For", "")
-    if forwarded_for:
-        return forwarded_for.split(",")[0].strip()
-    return request.remote_addr or "unknown"
+def get_admin_attempt_state():
+    now = datetime.now(timezone.utc)
+    state = session.get("admin_attempts", {})
+    count = int(state.get("count", 0))
+    cooldown_until_raw = state.get("cooldown_until")
+    cooldown_until = None
 
+    if cooldown_until_raw:
+        try:
+            cooldown_until = datetime.fromisoformat(cooldown_until_raw)
+        except ValueError:
+            cooldown_until = None
 
-def get_attempt_state(client_key):
-    now = datetime.utcnow()
-    state = admin_attempts.get(client_key)
-
-    if not state:
-        state = {"count": 0, "cooldown_until": None}
-        admin_attempts[client_key] = state
-
-    cooldown_until = state["cooldown_until"]
     if cooldown_until and cooldown_until <= now:
-        state["count"] = 0
-        state["cooldown_until"] = None
+        count = 0
+        cooldown_until = None
 
-    return state
+    return {
+        "count": count,
+        "cooldown_until": cooldown_until,
+    }
+
+
+def save_admin_attempt_state(count, cooldown_until):
+    session["admin_attempts"] = {
+        "count": count,
+        "cooldown_until": cooldown_until.isoformat() if cooldown_until else None,
+    }
 
 
 @app.route("/")
@@ -54,13 +64,12 @@ def admin():
 
 @app.route("/admin/login", methods=["POST"])
 def admin_login():
-    client_key = get_client_key()
-    state = get_attempt_state(client_key)
-    now = datetime.utcnow()
-
+    state = get_admin_attempt_state()
+    now = datetime.now(timezone.utc)
     cooldown_until = state["cooldown_until"]
+
     if cooldown_until and cooldown_until > now:
-        remaining = int((cooldown_until - now).total_seconds())
+        remaining = max(1, int((cooldown_until - now).total_seconds()))
         return jsonify({
             "error": f"Too many failed attempts. Try again in {remaining} seconds.",
             "cooldown_remaining": remaining,
@@ -72,24 +81,31 @@ def admin_login():
     if compare_digest(password, ADMIN_PASSWORD):
         session.permanent = True
         session["admin_authenticated"] = True
-        state["count"] = 0
-        state["cooldown_until"] = None
+        save_admin_attempt_state(0, None)
         return jsonify({"message": "Admin access granted."}), 200
 
-    state["count"] += 1
-    attempts_left = MAX_ADMIN_ATTEMPTS - state["count"]
+    failed_count = state["count"] + 1
+    attempts_left = MAX_ADMIN_ATTEMPTS - failed_count
 
-    if state["count"] >= MAX_ADMIN_ATTEMPTS:
-        state["cooldown_until"] = now + timedelta(seconds=ADMIN_COOLDOWN_SECONDS)
+    if failed_count >= MAX_ADMIN_ATTEMPTS:
+        cooldown_until = now + timedelta(seconds=ADMIN_COOLDOWN_SECONDS)
+        save_admin_attempt_state(failed_count, cooldown_until)
         return jsonify({
             "error": f"Too many failed attempts. Try again in {ADMIN_COOLDOWN_SECONDS} seconds.",
             "cooldown_remaining": ADMIN_COOLDOWN_SECONDS,
         }), 429
 
+    save_admin_attempt_state(failed_count, None)
     return jsonify({
         "error": f"Incorrect password. {attempts_left} attempt(s) remaining.",
         "attempts_left": attempts_left,
     }), 401
+
+
+@app.route("/admin/logout", methods=["POST"])
+def admin_logout():
+    session.pop("admin_authenticated", None)
+    return jsonify({"message": "Logged out."}), 200
 
 
 if __name__ == "__main__":

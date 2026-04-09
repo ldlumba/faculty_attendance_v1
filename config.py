@@ -3,7 +3,15 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-SUPABASE_URL = os.getenv("SUPABASE_URL")
-SUPABASE_KEY = os.getenv("SUPABASE_KEY")
-SECRET_KEY = os.getenv("SECRET_KEY", "change-this-secret-key")
-ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "admin2434")
+
+def require_env(name):
+    value = os.getenv(name)
+    if not value:
+        raise RuntimeError(f"Missing required environment variable: {name}")
+    return value
+
+
+SUPABASE_URL = require_env("SUPABASE_URL")
+SUPABASE_KEY = require_env("SUPABASE_KEY")
+SECRET_KEY = require_env("SECRET_KEY")
+ADMIN_PASSWORD = require_env("ADMIN_PASSWORD")
