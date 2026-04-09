@@ -58,16 +58,14 @@ def log_signed_attendance(teacher_id, action):
 def get_last_attendance_action(teacher_id):
     response = (
         supabase.table("attendance")
-        .select("action")
+        .select("id,action")
         .eq("teacher_id", str(teacher_id))
-        .order("date", desc=True)
-        .order("time", desc=True)
         .order("id", desc=True)
         .limit(1)
         .execute()
     )
     if response.data:
-        return response.data[0]["action"]
+        return str(response.data[0]["action"]).upper()
     return None
 
 
