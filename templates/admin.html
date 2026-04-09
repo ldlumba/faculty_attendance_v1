@@ -2,12 +2,15 @@
 <html>
 <head>
     <title>Admin Dashboard</title>
-    <link rel="stylesheet" href="static/style2.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style2.css') }}">
 </head>
 
 <body>
+<main class="admin-shell">
 <h2>Admin Dashboard</h2>
 
+<div class="toolbar">
 <button onclick="loadData()"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
         class="bi bi-arrow-repeat" viewBox="0 0 16 16">
         <path
@@ -19,6 +22,12 @@
     </svg>
     Refresh
 </button>
+<button onclick="openTeacherModal()">Add Teacher</button>
+<button onclick="openQrModal()">Generate QR</button>
+<button onclick="window.location.href='/'">Return to front page</button>
+</div>
+
+<p id="adminMessage" class="admin-message"></p>
 
 <table>
     <thead>
@@ -35,7 +44,40 @@
     <tbody id="table"></tbody>
 </table>
 
+<div id="qrModal" class="modal hidden">
+    <div class="modal-card">
+        <div class="modal-header">
+            <h3>Generate Teacher QR</h3>
+            <button class="close-btn" onclick="closeQrModal()">X</button>
+        </div>
+        <label for="teacherSelect">Teacher</label>
+        <select id="teacherSelect" onchange="loadTeacherQr()"></select>
+        <div id="teacherMeta" class="teacher-meta"></div>
+        <img id="teacherQrImage" class="qr-image hidden" alt="Teacher QR code">
+        <a id="downloadQrLink" class="download-link hidden" download>Download PNG</a>
+    </div>
+</div>
+
+<div id="teacherModal" class="modal hidden">
+    <div class="modal-card">
+        <div class="modal-header">
+            <h3>Add Teacher</h3>
+            <button class="close-btn" onclick="closeTeacherModal()">X</button>
+        </div>
+        <label for="newTeacherId">Teacher ID</label>
+        <input type="text" id="newTeacherId" placeholder="Enter numeric teacher ID">
+        <label for="newTeacherFirstName">First Name</label>
+        <input type="text" id="newTeacherFirstName" placeholder="Enter first name">
+        <label for="newTeacherLastName">Last Name</label>
+        <input type="text" id="newTeacherLastName" placeholder="Enter last name">
+        <button class="primary-btn" onclick="createTeacher()">Create Teacher</button>
+        <p id="teacherFormMessage" class="teacher-meta"></p>
+    </div>
+</div>
+
 <script>
+let cachedTeachers = [];
+
 async function loadData() {
     const res = await fetch("/verify");
     const data = await res.json();
@@ -58,6 +100,113 @@ async function loadData() {
         </tr>`;
     });
 }
+
+async function fetchTeachers() {
+    const res = await fetch("/teachers");
+    const data = await res.json();
+
+    if (!res.ok) {
+        throw new Error(data.error || "Could not load teachers.");
+    }
+
+    cachedTeachers = data;
+    return data;
+}
+
+async function openQrModal() {
+    document.getElementById("qrModal").classList.remove("hidden");
+    const select = document.getElementById("teacherSelect");
+    select.innerHTML = "<option>Loading...</option>";
+
+    try {
+        const teachers = await fetchTeachers();
+        select.innerHTML = teachers.map(teacher =>
+            `<option value="${teacher.id}">${teacher.id} - ${teacher.name}</option>`
+        ).join("");
+
+        if (teachers.length > 0) {
+            loadTeacherQr();
+        }
+    } catch (error) {
+        document.getElementById("teacherMeta").innerText = error.message;
+    }
+}
+
+function closeQrModal() {
+    document.getElementById("qrModal").classList.add("hidden");
+}
+
+async function loadTeacherQr() {
+    const teacherId = document.getElementById("teacherSelect").value;
+    if (!teacherId) {
+        return;
+    }
+
+    const res = await fetch(`/teachers/${teacherId}/qr`);
+    const data = await res.json();
+    const qrImage = document.getElementById("teacherQrImage");
+    const downloadLink = document.getElementById("downloadQrLink");
+
+    if (!res.ok) {
+        document.getElementById("teacherMeta").innerText = data.error || "Could not generate QR.";
+        qrImage.classList.add("hidden");
+        downloadLink.classList.add("hidden");
+        return;
+    }
+
+    document.getElementById("teacherMeta").innerText = `${data.teacher_id} - ${data.name}`;
+    qrImage.src = `${data.qr_image_url}?t=${Date.now()}`;
+    qrImage.classList.remove("hidden");
+
+    downloadLink.href = data.download_url;
+    downloadLink.download = data.filename;
+    downloadLink.classList.remove("hidden");
+    downloadLink.innerText = `Download ${data.filename}`;
+}
+
+function openTeacherModal() {
+    document.getElementById("teacherModal").classList.remove("hidden");
+    document.getElementById("teacherFormMessage").innerText = "";
+}
+
+function closeTeacherModal() {
+    document.getElementById("teacherModal").classList.add("hidden");
+}
+
+async function createTeacher() {
+    const id = document.getElementById("newTeacherId").value.trim();
+    const first_name = document.getElementById("newTeacherFirstName").value.trim();
+    const last_name = document.getElementById("newTeacherLastName").value.trim();
+    const formMessage = document.getElementById("teacherFormMessage");
+
+    formMessage.innerText = "Saving teacher...";
+
+    const res = await fetch("/teachers", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ id, first_name, last_name })
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+        formMessage.innerText = data.error || "Could not create teacher.";
+        return;
+    }
+
+    formMessage.innerText = data.message;
+    document.getElementById("adminMessage").innerText = data.message;
+    document.getElementById("newTeacherId").value = "";
+    document.getElementById("newTeacherFirstName").value = "";
+    document.getElementById("newTeacherLastName").value = "";
+    await fetchTeachers();
+    closeTeacherModal();
+}
+
+loadData();
 </script>
+</main>
 </body>
 </html>

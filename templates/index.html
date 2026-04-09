@@ -2,22 +2,79 @@
 <html>
 <head>
     <title>Faculty Attendance</title>
-    <link rel="stylesheet" href="static/style1.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style1.css') }}">
 </head>
 
 <body>
-<div class="card">
-    <h2>Faculty Attendance</h2>
+<div class="site-logos">
+    <img class="site-logo" src="{{ url_for('static', filename='UALogo.png') }}" alt="University of the Assumption logo">
+    <img class="site-logo" src="{{ url_for('static', filename='CITlogo.png') }}" alt="CIT logo">
+</div>
+<main class="landing-shell">
+    <section class="hero-panel">
+        <p class="eyebrow">College of Information Technology</p>
+        <h1>CIT Faculty Attendance</h1>
+        <p class="hero-copy">
+            Accurate faculty time-in and time-out recording through intuitive ID and QR scanning.
+        </p>
+    </section>
 
-    <input type="text" id="teacher_id" placeholder="Enter Teacher ID">
+    <section class="action-panel">
+        <div class="card">
+            <p class="card-label">Attendance Terminal</p>
+            <input type="text" id="teacher_id" placeholder="Enter Teacher ID">
 
-    <button class="in" onclick="logTime('IN')">Time In</button>
-    <button class="out" onclick="logTime('OUT')">Time Out</button>
+            <button class="in" onclick="logTime('IN')">Time In</button>
+            <button class="out" onclick="logTime('OUT')">Time Out</button>
+            <button class="scan" onclick="openScanModal()">Scan QR</button>
+            <button class="manage-records" type="button" onclick="openAdminModal()">Manage Records</button>
 
-    <p id="response"></p>
+            <p id="response"></p>
+        </div>
+    </section>
+</main>
+
+<div id="scanModal" class="modal hidden">
+    <div class="modal-card modal-wide">
+        <div class="modal-header">
+            <h3>QR Scanner</h3>
+            <button class="close-btn" onclick="closeScanModal()">X</button>
+        </div>
+        <p>Choose the webcam source, then point the provided QR into the live camera feed.</p>
+        <label for="cameraSelect">Camera Source</label>
+        <select id="cameraSelect" onchange="switchCamera()"></select>
+        <video id="cameraFeed" autoplay playsinline muted></video>
+        <div class="manual-row">
+            <input type="text" id="manualTeacherId" placeholder="Manual fallback: enter teacher ID">
+            <button class="scan submit-scan" onclick="submitScannedId(document.getElementById('manualTeacherId').value)">Submit</button>
+        </div>
+        <p id="scanStatus" class="scan-status">Scanner is idle.</p>
+    </div>
+</div>
+
+<div id="adminModal" class="modal hidden">
+    <div class="modal-card">
+        <div class="modal-header">
+            <h3>Manage Records</h3>
+            <button class="close-btn" onclick="closeAdminModal()">X</button>
+        </div>
+        <p>Enter the admin password to continue to the dashboard.</p>
+        <input type="password" id="adminPassword" placeholder="Enter admin password">
+        <button class="scan" onclick="submitAdminPassword()">Continue</button>
+        <p id="adminStatus" class="scan-status">Admin access is protected.</p>
+    </div>
 </div>
 
 <script>
+let stream = null;
+let scanInterval = null;
+let isSubmittingScan = false;
+let isDecodingFrame = false;
+let lastScanValue = "";
+let lastScanAt = 0;
+let selectedCameraId = "";
+
 async function logTime(action) {
     const teacher_id = document.getElementById("teacher_id").value;
 
@@ -41,9 +98,255 @@ async function logTime(action) {
     if (!res.ok) {
         document.getElementById("response").innerText = data.error;
     } else {
-        document.getElementById("response").innerText = "Recorded successfully.";
+        document.getElementById("response").innerText = data.message;
+        document.getElementById("teacher_id").value = "";
     }
 }
+
+async function openScanModal() {
+    document.getElementById("scanModal").classList.remove("hidden");
+    document.getElementById("scanStatus").innerText = "Requesting camera access...";
+    await startScanner();
+}
+
+function openAdminModal() {
+    document.getElementById("adminModal").classList.remove("hidden");
+    document.getElementById("adminStatus").innerText = "Admin access is protected.";
+    document.getElementById("adminPassword").value = "";
+}
+
+function closeAdminModal() {
+    document.getElementById("adminModal").classList.add("hidden");
+}
+
+function closeScanModal() {
+    document.getElementById("scanModal").classList.add("hidden");
+    stopScanner();
+}
+
+async function startScanner() {
+    const status = document.getElementById("scanStatus");
+    const cameraSelect = document.getElementById("cameraSelect");
+
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        status.innerText = "This browser cannot access webcams.";
+        return;
+    }
+
+    try {
+        stream = await openPreferredCamera(selectedCameraId);
+        document.getElementById("cameraFeed").srcObject = stream;
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const videoDevices = devices.filter(device => device.kind === "videoinput");
+
+        const activeTrack = stream.getVideoTracks()[0];
+        const activeSettings = activeTrack ? activeTrack.getSettings() : {};
+        selectedCameraId = activeSettings.deviceId || selectedCameraId;
+
+        if (videoDevices.length) {
+            cameraSelect.innerHTML = videoDevices.map((device, index) =>
+                `<option value="${device.deviceId}">${device.label || `Camera ${index + 1}`}</option>`
+            ).join("");
+
+            if (selectedCameraId) {
+                cameraSelect.value = selectedCameraId;
+            }
+            cameraSelect.disabled = false;
+        } else {
+            cameraSelect.innerHTML = '<option value="">Current camera</option>';
+            cameraSelect.disabled = true;
+        }
+
+        startScanLoop();
+        status.innerText = "Scanner is ready. Point the QR at the camera.";
+    } catch (error) {
+        status.innerText = "Camera access failed. Check browser camera permission and confirm the webcam or DroidCam device is available to the browser.";
+    }
+}
+
+async function switchCamera() {
+    const selectedDeviceId = document.getElementById("cameraSelect").value;
+    if (!selectedDeviceId) {
+        return;
+    }
+
+    selectedCameraId = selectedDeviceId;
+    stopScanner(false);
+
+    try {
+        stream = await openPreferredCamera(selectedDeviceId);
+        document.getElementById("cameraFeed").srcObject = stream;
+        startScanLoop();
+        document.getElementById("scanStatus").innerText = "Camera switched. Ready to scan.";
+    } catch (error) {
+        document.getElementById("scanStatus").innerText = "Could not switch to that camera source.";
+    }
+}
+
+async function openPreferredCamera(deviceId) {
+    const constraints = deviceId
+        ? {
+            video: {
+                deviceId: { exact: deviceId },
+                width: { ideal: 1280 },
+                height: { ideal: 720 }
+            },
+            audio: false
+        }
+        : {
+            video: {
+                width: { ideal: 1280 },
+                height: { ideal: 720 }
+            },
+            audio: false
+        };
+
+    return navigator.mediaDevices.getUserMedia(constraints);
+}
+
+function startScanLoop() {
+    if (scanInterval) {
+        clearInterval(scanInterval);
+    }
+
+    scanInterval = setInterval(scanFrame, 900);
+}
+
+async function scanFrame() {
+    const video = document.getElementById("cameraFeed");
+    if (!video || video.readyState < 2 || isSubmittingScan || isDecodingFrame) {
+        return;
+    }
+
+    try {
+        isDecodingFrame = true;
+        const canvas = document.createElement("canvas");
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+
+        if (!canvas.width || !canvas.height) {
+            isDecodingFrame = false;
+            return;
+        }
+
+        const context = canvas.getContext("2d");
+        context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+        const res = await fetch("/scan-frame", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                image: canvas.toDataURL("image/jpeg", 0.85)
+            })
+        });
+        const data = await res.json();
+        const rawValue = String(data.teacher_id || "").trim();
+
+        if (!rawValue) {
+            isDecodingFrame = false;
+            return;
+        }
+
+        const now = Date.now();
+        if (rawValue === lastScanValue && now - lastScanAt < 3000) {
+            isDecodingFrame = false;
+            return;
+        }
+
+        lastScanValue = rawValue;
+        lastScanAt = now;
+        submitScannedId(rawValue);
+        isDecodingFrame = false;
+    } catch (error) {
+        document.getElementById("scanStatus").innerText = "Scanner is active, waiting for a readable QR.";
+        isDecodingFrame = false;
+    }
+}
+
+async function submitScannedId(teacherId) {
+    const normalizedTeacherId = String(teacherId || "").trim();
+    if (!normalizedTeacherId || isSubmittingScan) {
+        return;
+    }
+
+    isSubmittingScan = true;
+    document.getElementById("scanStatus").innerText = "Submitting attendance...";
+
+    const res = await fetch("/scan-time", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ teacher_id: normalizedTeacherId })
+    });
+
+    let data;
+
+    try {
+        data = await res.json();
+    } catch {
+        data = { error: "Server error." };
+    }
+
+    if (!res.ok) {
+        document.getElementById("scanStatus").innerText = data.error || "Scan failed.";
+        isSubmittingScan = false;
+        return;
+    }
+
+    document.getElementById("response").innerText = data.message;
+    document.getElementById("scanStatus").innerText = `${data.teacher_name} recorded for ${data.action}. Ready for the next scan.`;
+    document.getElementById("manualTeacherId").value = "";
+    isSubmittingScan = false;
+    closeScanModal();
+}
+
+async function submitAdminPassword() {
+    const password = document.getElementById("adminPassword").value;
+    const status = document.getElementById("adminStatus");
+
+    status.innerText = "Checking password...";
+
+    const res = await fetch("/admin/login", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ password })
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+        status.innerText = data.error || "Could not verify password.";
+        return;
+    }
+
+    window.location.href = "/admin";
+}
+
+function stopScanner(clearVideo = true) {
+    if (scanInterval) {
+        clearInterval(scanInterval);
+        scanInterval = null;
+    }
+
+    if (stream) {
+        stream.getTracks().forEach(track => track.stop());
+        stream = null;
+    }
+
+    if (clearVideo) {
+        document.getElementById("cameraFeed").srcObject = null;
+    }
+
+    isSubmittingScan = false;
+    isDecodingFrame = false;
+}
+
+window.addEventListener("beforeunload", () => stopScanner());
 </script>
 </body>
 </html>

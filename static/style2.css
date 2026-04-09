@@ -1,25 +1,60 @@
 body {
-    font-family: Arial;
-    background: #0f172a;
+    font-family: Arial, sans-serif;
+    background:
+        radial-gradient(circle at top left, rgba(37, 99, 235, 0.16), transparent 34%),
+        linear-gradient(135deg, #0f172a 0%, #111c34 100%);
     color: white;
-    padding: 20px;
+    margin: 0;
+    min-height: 100vh;
+}
+
+.admin-shell {
+    padding: 28px 24px 36px;
+    box-sizing: border-box;
+}
+
+h2 {
+    margin: 0 0 18px;
+    color: #f8fafc;
+}
+
+.toolbar {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+}
+
+.admin-message {
+    min-height: 22px;
+    margin: 0 0 16px;
+    color: #cbd5e1;
 }
 
 table {
     width: 100%;
     border-collapse: collapse;
-    background: #1e293b;
+    background: rgba(30, 41, 59, 0.92);
+    backdrop-filter: blur(10px);
+    border-radius: 18px;
+    overflow: hidden;
+    box-shadow: 0 18px 40px rgba(0, 0, 0, 0.22);
 }
 
 th,
 td {
-    padding: 10px;
+    padding: 12px 10px;
     border: 1px solid #334155;
     text-align: center;
 }
 
 th {
     background: #334155;
+    color: #f8fafc;
+}
+
+td {
+    color: #e2e8f0;
 }
 
 .valid {
@@ -30,37 +65,135 @@ th {
     color: #ef4444;
 }
 
-
-button {
+button,
+.download-link {
     color: white;
-    background-color: #222;
-    font-weight: 500;
-    border-radius: 0.4rem; /* Slightly smaller radius for a smaller button */
-    font-size: 0.85rem;    /* Reduced from 1rem */
-    line-height: 1.2rem;   /* Reduced from 2rem */
-    padding: 0.4rem 1rem;  /* Reduced padding (top/bottom left/right) */
+    background-color: #1e293b;
+    font-weight: 600;
+    border-radius: 0.6rem;
+    font-size: 0.88rem;
+    line-height: 1.2rem;
+    padding: 0.65rem 1rem;
     cursor: pointer;
     text-align: center;
-    margin-right: 0.5rem;
     display: inline-flex;
     align-items: center;
-    border: none;
+    justify-content: center;
+    border: 1px solid rgba(148, 163, 184, 0.18);
+    text-decoration: none;
+    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.14);
 }
 
-button:hover {
-    background-color: #333;
+button:hover,
+.download-link:hover {
+    background-color: #26344b;
 }
 
 button svg {
     display: inline;
-    width: 1rem;           /* Reduced from 1.3rem */
-    height: 1rem;          /* Reduced from 1.3rem */
-    margin-right: 0.5rem;  /* Reduced from 0.75rem */
+    width: 1rem;
+    height: 1rem;
+    margin-right: 0.5rem;
     color: white;
 }
 
 button:focus svg {
     animation: spin_357 0.5s linear;
+}
+
+.modal {
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.78);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+    box-sizing: border-box;
+}
+
+.hidden {
+    display: none;
+}
+
+.modal-card {
+    width: min(460px, 100%);
+    background: #1e293b;
+    border-radius: 12px;
+    padding: 20px;
+    box-sizing: border-box;
+    box-shadow: 0 18px 40px rgba(0, 0, 0, 0.4);
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.close-btn {
+    width: auto;
+    background: transparent;
+    box-shadow: none;
+}
+
+label,
+select,
+.teacher-meta,
+input {
+    display: block;
+    width: 100%;
+    margin-top: 12px;
+}
+
+select,
+input {
+    padding: 10px;
+    border-radius: 8px;
+    border: none;
+    box-sizing: border-box;
+    background: #f8fafc;
+    color: #0f172a;
+}
+
+.teacher-meta {
+    color: #cbd5e1;
+    line-height: 1.5;
+}
+
+.primary-btn {
+    width: 100%;
+    margin-top: 16px;
+    background: #2563eb;
+}
+
+.primary-btn:hover {
+    background: #1d4ed8;
+}
+
+.qr-image {
+    width: min(260px, 100%);
+    margin-top: 16px;
+    border-radius: 12px;
+    background: white;
+    padding: 14px;
+    box-sizing: border-box;
+}
+
+.download-link {
+    margin-top: 16px;
+}
+
+@media (max-width: 720px) {
+    .admin-shell {
+        padding: 18px 14px 24px;
+    }
+
+    table {
+        display: block;
+        overflow-x: auto;
+        white-space: nowrap;
+    }
 }
 
 @keyframes spin_357 {
