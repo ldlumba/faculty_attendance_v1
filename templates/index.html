@@ -161,7 +161,7 @@ async function startScanner() {
         startScanLoop();
         status.innerText = "Scanner is ready. Point the QR at the camera.";
     } catch (error) {
-        status.innerText = "Camera access failed. Check browser camera permission and confirm the webcam or DroidCam device is available to the browser.";
+        status.innerText = "Camera access failed. Check browser camera permission and confirm if the webcam is available to the browser.";
     }
 }
 
