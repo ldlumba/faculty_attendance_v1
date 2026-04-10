@@ -11,11 +11,13 @@ x = 5
 y = pow(g, x, p)
 
 def hash_record(record):
+    # Hashes the attendance data before signing or verification.
     record_str = f"{record['teacher_id']}{record['date']}{record['time']}{record['action']}"
     return int(hashlib.sha256(record_str.encode()).hexdigest(), 16) % q
 
 
 def sign(h):
+    # Produces the demo DSA signature values r and s.
     while True:
         k = random.randint(1, q - 1)
 
@@ -36,6 +38,7 @@ def sign(h):
 
 
 def verify(record, r, s):
+    # Verifies whether a stored attendance record was altered.
     if not (0 < r < q and 0 < s < q):
         return False
 

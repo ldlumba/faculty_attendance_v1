@@ -14,6 +14,7 @@ app.config.update(
     SESSION_COOKIE_SAMESITE="Lax",
 )
 
+# Connects the attendance routes to the main Flask app.
 app.register_blueprint(attendance_bp)
 
 MAX_ADMIN_ATTEMPTS = 5
@@ -21,6 +22,7 @@ ADMIN_COOLDOWN_SECONDS = 30
 
 
 def get_admin_attempt_state():
+    # Reads the current admin login cooldown from the session.
     now = datetime.now(timezone.utc)
     state = session.get("admin_attempts", {})
     count = int(state.get("count", 0))
@@ -44,6 +46,7 @@ def get_admin_attempt_state():
 
 
 def save_admin_attempt_state(count, cooldown_until):
+    # Saves failed login count and cooldown expiry for admin access.
     session["admin_attempts"] = {
         "count": count,
         "cooldown_until": cooldown_until.isoformat() if cooldown_until else None,
@@ -52,12 +55,14 @@ def save_admin_attempt_state(count, cooldown_until):
 
 @app.route("/")
 def home():
+    # Returns the user to the front page and clears admin access.
     session.pop("admin_authenticated", None)
     return render_template("index.html")
 
 
 @app.route("/admin")
 def admin():
+    # Redirects unauthorized users away from the admin dashboard.
     if not session.get("admin_authenticated"):
         return redirect(url_for("home"))
     return render_template("admin.html")
@@ -65,6 +70,7 @@ def admin():
 
 @app.route("/admin/login", methods=["POST"])
 def admin_login():
+    # Validates the admin password and applies login cooldown rules.
     state = get_admin_attempt_state()
     now = datetime.now(timezone.utc)
     cooldown_until = state["cooldown_until"]
@@ -105,6 +111,7 @@ def admin_login():
 
 @app.route("/admin/logout", methods=["POST"])
 def admin_logout():
+    # Ends the active admin session.
     session.pop("admin_authenticated", None)
     return jsonify({"message": "Logged out."}), 200
 

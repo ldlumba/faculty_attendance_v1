@@ -17,6 +17,7 @@ attendance_bp = Blueprint("attendance", __name__)
 def admin_required(view):
     @wraps(view)
     def wrapped(*args, **kwargs):
+        # Protects admin-only API routes behind the login session.
         if not session.get("admin_authenticated"):
             return jsonify({"error": "Unauthorized"}), 401
         return view(*args, **kwargs)
@@ -43,6 +44,7 @@ def get_teacher_name(teacher_id):
 
 
 def build_record(teacher_id, action):
+    # Creates the attendance data that will be signed and stored.
     now = datetime.now()
     return {
         "teacher_id": str(teacher_id),
@@ -53,6 +55,7 @@ def build_record(teacher_id, action):
 
 
 def log_signed_attendance(teacher_id, action):
+    # Signs the attendance record with the demo DSA values before saving.
     record = build_record(teacher_id, action)
     h = hash_record(record)
     r, s = sign(h)
@@ -67,6 +70,7 @@ def log_signed_attendance(teacher_id, action):
 
 
 def get_last_attendance_action(teacher_id):
+    # Reads the latest saved attendance action for QR toggle logic.
     response = (
         supabase.table("attendance")
         .select("id,action")
@@ -81,10 +85,12 @@ def get_last_attendance_action(teacher_id):
 
 
 def get_next_scan_action(teacher_id):
+    # Alternates scan results between time-in and time-out.
     return "OUT" if get_last_attendance_action(teacher_id) == "IN" else "IN"
 
 
 def decode_qr_from_data_url(data_url):
+    # Decodes the teacher ID from a webcam frame sent by the browser.
     if not data_url or "," not in data_url:
         return None
 
@@ -101,6 +107,7 @@ def decode_qr_from_data_url(data_url):
 
 
 def generate_qr_png(payload):
+    # Builds a downloadable QR image that contains only the teacher ID.
     qr = qrcode.QRCode(
         version=1,
         error_correction=qrcode.constants.ERROR_CORRECT_M,
@@ -120,6 +127,7 @@ def generate_qr_png(payload):
 @attendance_bp.route("/time", methods=["POST"])
 def log_time():
     try:
+        # Handles manual attendance entry from the front page.
         data = request.json or {}
         teacher_id = str(data.get("teacher_id", "")).strip()
         action = str(data.get("action", "")).strip().upper()
@@ -151,6 +159,7 @@ def log_time():
 @attendance_bp.route("/scan-time", methods=["POST"])
 def scan_time():
     try:
+        # Handles QR-based attendance and auto-selects IN or OUT.
         data = request.json or {}
         teacher_id = str(data.get("teacher_id", "")).strip()
 
@@ -179,6 +188,7 @@ def scan_time():
 @attendance_bp.route("/scan-frame", methods=["POST"])
 def scan_frame():
     try:
+        # Checks a single webcam frame for a readable QR code.
         data = request.json or {}
         image_data = data.get("image")
         teacher_id = decode_qr_from_data_url(image_data)
@@ -196,6 +206,7 @@ def scan_frame():
 @admin_required
 def verify_all():
     try:
+        # Recomputes signatures so tampered attendance rows are detected.
         response = supabase.table("attendance").select("*").execute()
         records = response.data
         results = []
@@ -236,6 +247,7 @@ def verify_all():
 @admin_required
 def list_teachers():
     try:
+        # Loads teacher records for QR generation and admin forms.
         response = supabase.table("teachers").select("*").order("id").execute()
         teachers = [
             {
@@ -253,6 +265,7 @@ def list_teachers():
 @admin_required
 def create_teacher():
     try:
+        # Adds a new teacher record to the Supabase teachers table.
         data = request.json or {}
         teacher_id = str(data.get("id", "")).strip()
         first_name = str(data.get("first_name", "")).strip()
@@ -289,6 +302,7 @@ def create_teacher():
 @admin_required
 def teacher_qr(teacher_id):
     try:
+        # Returns the QR metadata used by the admin dashboard preview.
         teacher_name = get_teacher_name(teacher_id)
         if not teacher_name:
             return jsonify({"error": "Invalid Teacher ID."}), 404
@@ -308,6 +322,7 @@ def teacher_qr(teacher_id):
 @admin_required
 def teacher_qr_png(teacher_id):
     try:
+        # Returns the downloadable PNG file for a teacher QR code.
         teacher_name = get_teacher_name(teacher_id)
         if not teacher_name:
             return jsonify({"error": "Invalid Teacher ID."}), 404
