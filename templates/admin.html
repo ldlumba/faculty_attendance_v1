@@ -80,6 +80,7 @@
 let cachedTeachers = [];
 
 async function loadData() {
+    // Loads the attendance records with their verification status.
     const res = await fetch("/verify");
     const data = await res.json();
 
@@ -103,6 +104,7 @@ async function loadData() {
 }
 
 async function fetchTeachers() {
+    // Fetches the teacher list for admin tools like QR generation.
     const res = await fetch("/teachers");
     const data = await res.json();
 
@@ -115,6 +117,7 @@ async function fetchTeachers() {
 }
 
 async function openQrModal() {
+    // Opens the QR modal and fills the teacher dropdown.
     document.getElementById("qrModal").classList.remove("hidden");
     const select = document.getElementById("teacherSelect");
     select.innerHTML = "<option>Loading...</option>";
@@ -134,10 +137,12 @@ async function openQrModal() {
 }
 
 function closeQrModal() {
+    // Closes the QR generation modal.
     document.getElementById("qrModal").classList.add("hidden");
 }
 
 async function loadTeacherQr() {
+    // Loads the selected teacher's downloadable QR code.
     const teacherId = document.getElementById("teacherSelect").value;
     if (!teacherId) {
         return;
@@ -166,15 +171,18 @@ async function loadTeacherQr() {
 }
 
 function openTeacherModal() {
+    // Opens the form for adding a new teacher record.
     document.getElementById("teacherModal").classList.remove("hidden");
     document.getElementById("teacherFormMessage").innerText = "";
 }
 
 function closeTeacherModal() {
+    // Closes the teacher creation modal.
     document.getElementById("teacherModal").classList.add("hidden");
 }
 
 async function createTeacher() {
+    // Sends the new teacher details to the backend.
     const id = document.getElementById("newTeacherId").value.trim();
     const first_name = document.getElementById("newTeacherFirstName").value.trim();
     const last_name = document.getElementById("newTeacherLastName").value.trim();
@@ -206,6 +214,7 @@ async function createTeacher() {
     closeTeacherModal();
 }
 
+// Loads the dashboard table when the admin page opens.
 loadData();
 </script>
 </main>

@@ -77,6 +77,7 @@ let lastScanAt = 0;
 let selectedCameraId = "";
 
 async function logTime(action) {
+    // Sends a manual time-in or time-out request.
     const teacher_id = document.getElementById("teacher_id").value;
 
     const res = await fetch("/time", {
@@ -105,27 +106,32 @@ async function logTime(action) {
 }
 
 async function openScanModal() {
+    // Opens the QR scanner modal and starts the camera.
     document.getElementById("scanModal").classList.remove("hidden");
     document.getElementById("scanStatus").innerText = "Requesting camera access...";
     await startScanner();
 }
 
 function openAdminModal() {
+    // Opens the password prompt for the admin dashboard.
     document.getElementById("adminModal").classList.remove("hidden");
     document.getElementById("adminStatus").innerText = "Admin access is protected.";
     document.getElementById("adminPassword").value = "";
 }
 
 function closeAdminModal() {
+    // Closes the admin password modal.
     document.getElementById("adminModal").classList.add("hidden");
 }
 
 function closeScanModal() {
+    // Closes the scanner modal and releases the camera.
     document.getElementById("scanModal").classList.add("hidden");
     stopScanner();
 }
 
 async function startScanner() {
+    // Starts webcam access and populates the camera selector.
     const status = document.getElementById("scanStatus");
     const cameraSelect = document.getElementById("cameraSelect");
 
@@ -166,6 +172,7 @@ async function startScanner() {
 }
 
 async function switchCamera() {
+    // Switches the live feed to another available webcam.
     const selectedDeviceId = document.getElementById("cameraSelect").value;
     if (!selectedDeviceId) {
         return;
@@ -185,6 +192,7 @@ async function switchCamera() {
 }
 
 async function openPreferredCamera(deviceId) {
+    // Requests a specific camera, or the default webcam when none is chosen.
     const constraints = deviceId
         ? {
             video: {
@@ -206,6 +214,7 @@ async function openPreferredCamera(deviceId) {
 }
 
 function startScanLoop() {
+    // Polls the live video feed for QR frames.
     if (scanInterval) {
         clearInterval(scanInterval);
     }
@@ -214,6 +223,7 @@ function startScanLoop() {
 }
 
 async function scanFrame() {
+    // Captures a frame and sends it to Flask for QR decoding.
     const video = document.getElementById("cameraFeed");
     if (!video || video.readyState < 2 || isSubmittingScan || isDecodingFrame) {
         return;
@@ -267,6 +277,7 @@ async function scanFrame() {
 }
 
 async function submitScannedId(teacherId) {
+    // Submits the scanned teacher ID for automatic attendance logging.
     const normalizedTeacherId = String(teacherId || "").trim();
     if (!normalizedTeacherId || isSubmittingScan) {
         return;
@@ -305,6 +316,7 @@ async function submitScannedId(teacherId) {
 }
 
 async function submitAdminPassword() {
+    // Verifies the admin password before opening the dashboard.
     const password = document.getElementById("adminPassword").value;
     const status = document.getElementById("adminStatus");
 
@@ -329,6 +341,7 @@ async function submitAdminPassword() {
 }
 
 function stopScanner(clearVideo = true) {
+    // Stops the scan loop and closes the active camera stream.
     if (scanInterval) {
         clearInterval(scanInterval);
         scanInterval = null;
@@ -347,6 +360,7 @@ function stopScanner(clearVideo = true) {
     isDecodingFrame = false;
 }
 
+// Cleans up the webcam if the page is closed or refreshed.
 window.addEventListener("beforeunload", () => stopScanner());
 </script>
 </body>
