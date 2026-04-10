@@ -318,17 +318,17 @@ button {
 
 @media (max-width: 640px) {
     .site-logo {
-        width: 54px;
+        width: 44px;
     }
 
     .site-logos {
-        top: 14px;
-        left: 14px;
-        gap: 8px;
+        top: 12px;
+        left: 12px;
+        gap: 6px;
     }
 
     .landing-shell {
-        padding: 24px 16px 32px;
+        padding: 78px 16px 32px;
         gap: 22px;
     }
 
@@ -351,5 +351,30 @@ button {
 
     .submit-scan {
         width: 100%;
+    }
+}
+
+@media (max-width: 430px) {
+    .site-logo {
+        width: 38px;
+    }
+
+    .site-logos {
+        top: 10px;
+        left: 10px;
+        gap: 5px;
+    }
+
+    .landing-shell {
+        padding-top: 72px;
+    }
+
+    .hero-panel h1 {
+        font-size: clamp(2.45rem, 13vw, 3.35rem);
+    }
+
+    .eyebrow {
+        font-size: 0.74rem;
+        letter-spacing: 0.16em;
     }
 }
