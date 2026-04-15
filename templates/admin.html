@@ -46,6 +46,10 @@
     <tbody id="table"></tbody>
 </table>
 
+<div class="table-actions">
+    <button class="danger-btn" onclick="openClearRecordsModal()">Clear Records</button>
+</div>
+
 <div id="qrModal" class="modal hidden">
     <div class="modal-card">
         <div class="modal-header">
@@ -77,6 +81,21 @@
     </div>
 </div>
 
+<div id="clearRecordsModal" class="modal hidden">
+    <div class="modal-card">
+        <div class="modal-header">
+            <h3 id="clearModalTitle">Clear Attendance Records</h3>
+            <button class="close-btn" onclick="closeClearRecordsModal()">X</button>
+        </div>
+        <p id="clearModalMessage" class="teacher-meta"></p>
+        <div class="modal-actions">
+            <button type="button" onclick="closeClearRecordsModal()">Cancel</button>
+            <button id="clearModalExportBtn" type="button" onclick="exportAndContinueClear()">Export and proceed</button>
+            <button id="clearModalPrimaryBtn" class="danger-btn" type="button" onclick="goToFinalClearStep()">Proceed</button>
+        </div>
+    </div>
+</div>
+
 <script>
 let cachedTeachers = [];
 let cachedAttendanceRows = [];
@@ -85,6 +104,7 @@ let currentSort = {
     direction: "asc",
     type: "number"
 };
+let clearStep = 1;
 
 function compareValues(left, right, type = "text") {
     if (type === "number") {
@@ -191,6 +211,75 @@ function exportAttendanceCsv() {
     link.remove();
     URL.revokeObjectURL(url);
     document.getElementById("adminMessage").innerText = "Attendance records exported as CSV.";
+}
+
+function updateClearRecordsModal() {
+    // Updates the warning modal for the current clear-records step.
+    const title = document.getElementById("clearModalTitle");
+    const message = document.getElementById("clearModalMessage");
+    const exportButton = document.getElementById("clearModalExportBtn");
+    const primaryButton = document.getElementById("clearModalPrimaryBtn");
+
+    if (clearStep === 1) {
+        title.innerText = "Export Attendance Records";
+        message.innerText = "Would you like to export the attendance records before clearing them?";
+        exportButton.innerText = "Export and proceed";
+        exportButton.onclick = exportAndContinueClear;
+        primaryButton.innerText = "Proceed";
+        primaryButton.onclick = goToFinalClearStep;
+        return;
+    }
+
+    title.innerText = "Final Clear Warning";
+    message.innerText = "You are about to permanently clear the current attendance records. Make sure you export them first if you still need a copy.";
+    exportButton.innerText = "Export";
+    exportButton.onclick = exportAttendanceCsv;
+    primaryButton.innerText = "Clear";
+    primaryButton.onclick = clearAttendanceRecords;
+}
+
+function openClearRecordsModal() {
+    // Opens the first warning step before clearing attendance rows.
+    clearStep = 1;
+    updateClearRecordsModal();
+    document.getElementById("clearRecordsModal").classList.remove("hidden");
+}
+
+function closeClearRecordsModal() {
+    // Closes the clear-records warning modal.
+    document.getElementById("clearRecordsModal").classList.add("hidden");
+}
+
+function goToFinalClearStep() {
+    // Moves the warning modal to the final clear confirmation.
+    clearStep = 2;
+    updateClearRecordsModal();
+}
+
+function exportAndContinueClear() {
+    // Exports the current records, then opens the next clear warning step.
+    exportAttendanceCsv();
+    goToFinalClearStep();
+}
+
+async function clearAttendanceRecords() {
+    // Clears attendance rows after the final admin confirmation.
+    const res = await fetch("/attendance/clear", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        }
+    });
+    const data = await res.json();
+
+    if (!res.ok) {
+        document.getElementById("adminMessage").innerText = data.error || "Could not clear attendance records.";
+        return;
+    }
+
+    document.getElementById("adminMessage").innerText = data.message;
+    closeClearRecordsModal();
+    await loadData();
 }
 
 async function loadData() {

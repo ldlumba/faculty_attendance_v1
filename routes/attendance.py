@@ -338,3 +338,22 @@ def teacher_qr_png(teacher_id):
         )
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+
+@attendance_bp.route("/attendance/clear", methods=["POST"])
+@admin_required
+def clear_attendance():
+    try:
+        # Removes all attendance rows after admin confirmation.
+        existing_rows = supabase.table("attendance").select("id").execute()
+        record_ids = [row["id"] for row in existing_rows.data or []]
+
+        if not record_ids:
+            return jsonify({"message": "There are no attendance records to clear."}), 200
+
+        supabase.table("attendance").delete().in_("id", record_ids).execute()
+        return jsonify({
+            "message": f"{len(record_ids)} attendance record(s) cleared successfully."
+        }), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500

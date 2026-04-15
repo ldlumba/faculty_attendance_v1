@@ -31,6 +31,12 @@ h2 {
     color: #cbd5e1;
 }
 
+.table-actions {
+    margin-top: 16px;
+    display: flex;
+    justify-content: flex-end;
+}
+
 table {
     width: 100%;
     border-collapse: collapse;
@@ -203,6 +209,25 @@ input {
     margin-top: 16px;
 }
 
+.modal-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 18px;
+}
+
+.modal-actions button {
+    flex: 1 1 140px;
+}
+
+.danger-btn {
+    background: #b91c1c;
+}
+
+.danger-btn:hover {
+    background: #991b1b;
+}
+
 @media (max-width: 720px) {
     .admin-shell {
         padding: 18px 14px 24px;
@@ -212,6 +237,14 @@ input {
         display: block;
         overflow-x: auto;
         white-space: nowrap;
+    }
+
+    .table-actions {
+        justify-content: stretch;
+    }
+
+    .table-actions button {
+        width: 100%;
     }
 }
 
