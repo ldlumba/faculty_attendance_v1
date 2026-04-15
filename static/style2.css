@@ -53,6 +53,25 @@ th {
     color: #f8fafc;
 }
 
+.sort-btn {
+    width: auto;
+    min-width: 26px;
+    margin: 0 0 0 6px;
+    padding: 0.2rem 0.45rem;
+    background: rgba(15, 23, 42, 0.4);
+    border-color: rgba(148, 163, 184, 0.22);
+    box-shadow: none;
+    vertical-align: middle;
+}
+
+.sort-btn:hover {
+    background: rgba(15, 23, 42, 0.7);
+}
+
+.sort-btn.active {
+    background: #1d4ed8;
+}
+
 td {
     color: #e2e8f0;
 }

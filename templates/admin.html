@@ -33,13 +33,13 @@
 <table>
     <thead>
         <tr>
-            <th>ID</th>
-            <th>Teacher</th>
-            <th>Name</th>
-            <th>Date</th>
-            <th>Time</th>
-            <th>Action</th>
-            <th>Status</th>
+            <th>ID <button class="sort-btn active" type="button" data-sort="id" onclick="sortTable('id', 'number')">▲</button></th>
+            <th>Teacher <button class="sort-btn" type="button" data-sort="teacher_id" onclick="sortTable('teacher_id', 'text')">▼</button></th>
+            <th>Name <button class="sort-btn" type="button" data-sort="name" onclick="sortTable('name', 'text')">▼</button></th>
+            <th>Date <button class="sort-btn" type="button" data-sort="date" onclick="sortTable('date', 'date')">▼</button></th>
+            <th>Time <button class="sort-btn" type="button" data-sort="time" onclick="sortTable('time', 'time')">▼</button></th>
+            <th>Action <button class="sort-btn" type="button" data-sort="action" onclick="sortTable('action', 'text')">▼</button></th>
+            <th>Status <button class="sort-btn" type="button" data-sort="status" onclick="sortTable('status', 'text')">▼</button></th>
         </tr>
     </thead>
     <tbody id="table"></tbody>
@@ -78,16 +78,49 @@
 
 <script>
 let cachedTeachers = [];
+let cachedAttendanceRows = [];
+let currentSort = {
+    key: "id",
+    direction: "asc",
+    type: "number"
+};
 
-async function loadData() {
-    // Loads the attendance records with their verification status.
-    const res = await fetch("/verify");
-    const data = await res.json();
+function compareValues(left, right, type = "text") {
+    if (type === "number") {
+        return Number(left) - Number(right);
+    }
 
+    if (type === "date") {
+        return new Date(`${left}T00:00:00`) - new Date(`${right}T00:00:00`);
+    }
+
+    if (type === "time") {
+        return new Date(`1970-01-01T${left}`) - new Date(`1970-01-01T${right}`);
+    }
+
+    return String(left).localeCompare(String(right), undefined, { sensitivity: "base" });
+}
+
+function updateSortIndicators() {
+    // Updates the arrow labels to match the active table sort.
+    document.querySelectorAll(".sort-btn").forEach(button => {
+        const isActive = button.dataset.sort === currentSort.key;
+        button.textContent = isActive && currentSort.direction === "asc" ? "▲" : "▼";
+        button.classList.toggle("active", isActive);
+    });
+}
+
+function renderAttendanceRows() {
+    // Renders the current dashboard rows after sorting.
     const table = document.getElementById("table");
     table.innerHTML = "";
 
-    data.forEach(row => {
+    const sortedRows = [...cachedAttendanceRows].sort((left, right) => {
+        const compare = compareValues(left[currentSort.key], right[currentSort.key], currentSort.type);
+        return currentSort.direction === "asc" ? compare : -compare;
+    });
+
+    sortedRows.forEach(row => {
         table.innerHTML += `
         <tr>
             <td>${row.id}</td>
@@ -101,6 +134,33 @@ async function loadData() {
             </td>
         </tr>`;
     });
+
+    updateSortIndicators();
+}
+
+function sortTable(key, type = "text") {
+    // Toggles the dashboard sort direction for a selected column.
+    if (currentSort.key === key) {
+        currentSort.direction = currentSort.direction === "asc" ? "desc" : "asc";
+    } else {
+        currentSort.key = key;
+        currentSort.direction = "asc";
+    }
+
+    currentSort.type = type;
+    renderAttendanceRows();
+}
+
+async function loadData() {
+    // Loads the attendance records with their verification status.
+    const res = await fetch("/verify");
+    const data = await res.json();
+
+    cachedAttendanceRows = data.map(row => ({
+        ...row,
+        status: row.valid ? "Valid" : "Tampered"
+    }));
+    renderAttendanceRows();
 }
 
 async function fetchTeachers() {
