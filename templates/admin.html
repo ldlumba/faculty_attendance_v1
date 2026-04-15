@@ -25,6 +25,7 @@
 </button>
 <button onclick="openTeacherModal()">Add Teacher</button>
 <button onclick="openQrModal()">Generate QR</button>
+<button onclick="exportAttendanceCsv()">Export as CSV</button>
 <button onclick="window.location.href='/'">Return to front page</button>
 </div>
 
@@ -115,10 +116,7 @@ function renderAttendanceRows() {
     const table = document.getElementById("table");
     table.innerHTML = "";
 
-    const sortedRows = [...cachedAttendanceRows].sort((left, right) => {
-        const compare = compareValues(left[currentSort.key], right[currentSort.key], currentSort.type);
-        return currentSort.direction === "asc" ? compare : -compare;
-    });
+    const sortedRows = getSortedAttendanceRows();
 
     sortedRows.forEach(row => {
         table.innerHTML += `
@@ -138,6 +136,14 @@ function renderAttendanceRows() {
     updateSortIndicators();
 }
 
+function getSortedAttendanceRows() {
+    // Returns a sorted copy of the cached attendance rows.
+    return [...cachedAttendanceRows].sort((left, right) => {
+        const compare = compareValues(left[currentSort.key], right[currentSort.key], currentSort.type);
+        return currentSort.direction === "asc" ? compare : -compare;
+    });
+}
+
 function sortTable(key, type = "text") {
     // Toggles the dashboard sort direction for a selected column.
     if (currentSort.key === key) {
@@ -149,6 +155,42 @@ function sortTable(key, type = "text") {
 
     currentSort.type = type;
     renderAttendanceRows();
+}
+
+function exportAttendanceCsv() {
+    // Downloads the currently loaded attendance rows as a CSV file.
+    const rows = getSortedAttendanceRows();
+    if (!rows.length) {
+        document.getElementById("adminMessage").innerText = "There are no attendance records to export.";
+        return;
+    }
+
+    const header = ["ID", "Teacher ID", "Name", "Date", "Time", "Action", "Status"];
+    const csvRows = [
+        header.join(","),
+        ...rows.map(row => [
+            row.id,
+            row.teacher_id,
+            row.name,
+            row.date,
+            row.time,
+            row.action,
+            row.valid ? "Valid" : "Tampered"
+        ].map(value => `"${String(value).replace(/"/g, '""')}"`).join(","))
+    ];
+
+    const blob = new Blob([csvRows.join("\r\n")], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    const timestamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-");
+
+    link.href = url;
+    link.download = `attendance_records_${timestamp}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+    document.getElementById("adminMessage").innerText = "Attendance records exported as CSV.";
 }
 
 async function loadData() {
