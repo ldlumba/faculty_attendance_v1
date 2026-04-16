@@ -2,12 +2,14 @@ from datetime import datetime
 import base64
 from functools import wraps
 from io import BytesIO
+from zoneinfo import ZoneInfo
 
 import cv2
 import numpy as np
 import qrcode
 from flask import Blueprint, jsonify, request, send_file, session
 
+from config import APP_TIMEZONE
 from crypto import hash_record, sign, verify
 from supabase_client import supabase
 
@@ -45,7 +47,7 @@ def get_teacher_name(teacher_id):
 
 def build_record(teacher_id, action):
     # Creates the attendance data that will be signed and stored.
-    now = datetime.now()
+    now = datetime.now(ZoneInfo(APP_TIMEZONE))
     return {
         "teacher_id": str(teacher_id),
         "date": str(now.date()),
